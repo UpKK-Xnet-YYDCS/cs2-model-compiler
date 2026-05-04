@@ -2,15 +2,6 @@ name: Upload to Steam Workshop
 
 on:
   workflow_dispatch:
-    inputs:
-      steam_user:
-        description: "Steam username (leave empty for anonymous)"
-        required: false
-        default: "anonymous"
-      steam_password:
-        description: "Steam password (use with care, prefer cached login)"
-        required: false
-        default: ""
 
 jobs:
   upload:
@@ -34,13 +25,6 @@ jobs:
             uv pip install -r requirements.txt
           }
 
-          # Run Steam Workshop upload script
-          $steamUser = "${{ github.event.inputs.steam_user }}"
-          $steamPassword = "${{ github.event.inputs.steam_password }}"
-
-          if ($steamPassword) {
-            uv run upload_steam_workshop.py --steam-user "$steamUser" --steam-password "$steamPassword"
-          } else {
-            uv run upload_steam_workshop.py --steam-user "$steamUser"
-          }
+          # Run Steam Workshop upload script (uses local steam_config.txt)
+          uv run upload_steam_workshop.py
         shell: powershell

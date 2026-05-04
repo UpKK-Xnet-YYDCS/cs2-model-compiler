@@ -27,28 +27,53 @@ DEFAULT_STEAMCMD_DIR = r"F:/SteamCMD"
 DEFAULT_STEAM_USER = "anonymous"  # Use your Steam username for non-anonymous upload
 
 
+def load_config():
+    """Load config from file or environment variables."""
+    config = {
+        "workshop_dir": DEFAULT_WORKSHOP_DIR,
+        "steamcmd_dir": DEFAULT_STEAMCMD_DIR,
+        "steam_user": DEFAULT_STEAM_USER,
+        "steam_password": "",
+    }
+
+    # Try to load from config file
+    config_file = Path("steam_config.txt")
+    if config_file.exists():
+        try:
+            for line in config_file.read_text(encoding="utf-8").split("\n"):
+                line = line.strip()
+                if "=" in line and not line.startswith("#"):
+                    key, value = line.split("=", 1)
+                    key = key.strip()
+                    value = value.strip()
+                    if key in config:
+                        config[key] = value
+            print(f"  Loaded config from: {config_file}")
+        except Exception as e:
+            print(f"  Warning: Failed to load config file: {e}")
+
+    # Override with environment variables
+    import os
+    if os.environ.get("STEAM_USER"):
+        config["steam_user"] = os.environ.get("STEAM_USER")
+    if os.environ.get("STEAM_PASSWORD"):
+        config["steam_password"] = os.environ.get("STEAM_PASSWORD")
+
+    return config
+
+
 def parse_args():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="Upload to Steam Workshop via SteamCMD")
     parser.add_argument(
         "--workshop-dir",
-        default=DEFAULT_WORKSHOP_DIR,
+        default=None,
         help=f"Path to workshop addon directory (default: {DEFAULT_WORKSHOP_DIR})",
     )
     parser.add_argument(
         "--steamcmd-dir",
-        default=DEFAULT_STEAMCMD_DIR,
+        default=None,
         help=f"Path to SteamCMD directory (default: {DEFAULT_STEAMCMD_DIR})",
-    )
-    parser.add_argument(
-        "--steam-user",
-        default=DEFAULT_STEAM_USER,
-        help=f"Steam username (default: {DEFAULT_STEAM_USER} for anonymous)",
-    )
-    parser.add_argument(
-        "--steam-password",
-        default="",
-        help="Steam password (leave empty for anonymous or cached login)",
     )
     return parser.parse_args()
 
@@ -154,6 +179,13 @@ def upload_to_workshop(steamcmd_exe, workshop_dir, steam_user, steam_password):
 
 def main():
     args = parse_args()
+    config = load_config()
+
+    # Override config with command-line arguments if provided
+    workshop_dir = args.workshop_dir or config["workshop_dir"]
+    steamcmd_dir = args.steamcmd_dir or config["steamcmd_dir"]
+    steam_user = config["steam_user"]
+    steam_password = config["steam_password"]
 
     print("=" * 60)
     print("  Steam Workshop Uploader")
@@ -161,20 +193,20 @@ def main():
     print()
 
     # Check SteamCMD
-    steamcmd_exe = check_steamcmd(args.steamcmd_dir)
+    steamcmd_exe = check_steamcmd(steamcmd_dir)
     if not steamcmd_exe:
         sys.exit(1)
 
     # Check workshop directory
-    if not check_workshop_dir(args.workshop_dir):
+    if not check_workshop_dir(workshop_dir):
         sys.exit(1)
 
     # Upload
     success = upload_to_workshop(
         steamcmd_exe,
-        args.workshop_dir,
-        args.steam_user,
-        args.steam_password
+        workshop_dir,
+        steam_user,
+        steam_password
     )
 
     print()
