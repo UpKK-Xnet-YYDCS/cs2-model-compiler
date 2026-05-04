@@ -10,13 +10,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - name: Setup Python (skip if exists)
+      - name: Setup Python and uv (skip if exists)
         run: |
+          # Check if uv exists
+          try {
+            $uvVersion = uv --version 2>$null
+            Write-Output "uv already installed: $uvVersion"
+          } catch {
+            Write-Output "Installing uv..."
+            Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+          }
+
+          # Check if Python installed
           $pythonVersion = uv python list --installed 2>$null | Select-String "cpython" | Select-Object -First 1
           if ($pythonVersion) {
             Write-Output "Python already installed: $pythonVersion"
@@ -29,10 +34,12 @@ jobs:
       - name: Install dependencies
         working-directory: F:\CS2-ModelBuilder
         run: uv pip install -r requirements.txt
+        shell: powershell
 
       - name: Run compile_models.py
         working-directory: F:\CS2-ModelBuilder
         run: uv run python compile_models.py
+        shell: powershell
 
       - name: Copy BuildStats.md to repository
         run: Copy-Item "F:\CS2-ModelBuilder\compiled\BuildStats.md" -Destination "BuildStats.md" -Force
