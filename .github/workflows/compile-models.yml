@@ -10,50 +10,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python and uv (skip if exists)
+      - name: Setup and run all tasks
         run: |
-          # Add common uv install paths to PATH
-          $uvPaths = @(
-            "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin",
-            "$env:USERPROFILE\.local\bin",
-            "$env:LOCALAPPDATA\Programs\uv",
-            "C:\Users\e54385991\.local\bin"
-          )
+          # Add uv to PATH permanently for this job
+          $uvPath = "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin"
+          $env:Path = "$uvPath;$env:Path"
 
-          foreach ($path in $uvPaths) {
-            if (Test-Path "$path\uv.exe") {
-              $env:Path = "$path;$env:Path"
-              Write-Output "Found uv at: $path"
-              break
-            }
-          }
-
-          # Check if uv exists
-          try {
-            $uvVersion = uv --version 2>$null
-            Write-Output "uv already installed: $uvVersion"
-          } catch {
-            Write-Output "Installing uv..."
-            Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
-            # Add to PATH for current session
-            $env:Path = "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin;$env:Path"
-          }
-
-          # Verify uv is working
+          # Verify uv
           uv --version
 
-          # Check if Python installed (try to run python via uv)
+          # Check/Install Python
           try {
             $pythonCheck = uv run python --version 2>$null
-            if ($pythonCheck) {
-              Write-Output "Python already available: $pythonCheck"
-            } else {
-              throw "Python not found"
-            }
+            Write-Output "Python available: $pythonCheck"
           } catch {
             Write-Output "Installing Python..."
             uv python install
           }
+
+          # Install dependencies
+          Set-Location F:\CS2-ModelBuilder
+          if (Test-Path "requirements.txt") {
+            uv pip install -r requirements.txt
+          } else {
+            Write-Output "No requirements.txt found, skipping"
+          }
+
+          # Run compile script
+          uv run python compile_models.py
         shell: powershell
 
       - name: Install dependencies
