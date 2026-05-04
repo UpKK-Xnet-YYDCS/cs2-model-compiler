@@ -10,10 +10,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Allow PowerShell scripts
-        run: Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-        shell: powershell
-
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
