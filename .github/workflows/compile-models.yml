@@ -54,11 +54,3 @@ jobs:
         shell: powershell
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload compiled models as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: compiled-models
-          path: F:\CS2-ModelBuilder\compiled
-          if-no-files-found: warn
