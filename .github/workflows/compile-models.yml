@@ -42,11 +42,15 @@ jobs:
           # Verify uv is working
           uv --version
 
-          # Check if Python installed
-          $pythonVersion = uv python list --installed 2>$null | Select-String "cpython" | Select-Object -First 1
-          if ($pythonVersion) {
-            Write-Output "Python already installed: $pythonVersion"
-          } else {
+          # Check if Python installed (try to run python via uv)
+          try {
+            $pythonCheck = uv run python --version 2>$null
+            if ($pythonCheck) {
+              Write-Output "Python already available: $pythonCheck"
+            } else {
+              throw "Python not found"
+            }
+          } catch {
             Write-Output "Installing Python..."
             uv python install
           }
