@@ -339,34 +339,26 @@ def collect_compiled(content_dir, game_dir, output_dir, source_dir, models_folde
 
 
 def get_toolchain_version(cs2_dir):
-    """Get CS2 toolchain version from resourcecompiler.exe."""
-    compiler = Path(cs2_dir) / "game" / "bin" / "win64" / "resourcecompiler.exe"
-    if compiler.exists():
+    """Get CS2 toolchain version from steam.inf."""
+    steam_inf = Path(cs2_dir) / "game" / "csgo" / "steam.inf"
+    if steam_inf.exists():
         try:
-            # Try using PowerShell to get version
-            result = subprocess.run(
-                ["powershell", "-Command", f"(Get-Item '{compiler}').VersionInfo.ProductVersion"],
-                capture_output=True, text=True, timeout=10
-            )
-            version = result.stdout.strip().replace('"', '')
-            if version and version != "":
-                return version
-        except:
-            pass
+            content = steam_inf.read_text(encoding="utf-8", errors="ignore")
+            version_info = {}
+            for line in content.split("\n"):
+                if "=" in line:
+                    key, value = line.strip().split("=", 1)
+                    version_info[key] = value
 
-        # Fallback: try to get version from gameinfo.gi
-        try:
-            game_info = Path(cs2_dir) / "game" / "csgo" / "gameinfo.gi"
-            if game_info.exists():
-                content = game_info.read_text(encoding="utf-8", errors="ignore")
-                for line in content.split("\n"):
-                    if '"version"' in line and '"2"' not in line:
-                        return line.strip().replace('"', '')
-        except:
-            pass
+            client_ver = version_info.get("ClientVersion", "Unknown")
+            patch_ver = version_info.get("PatchVersion", "Unknown")
+            version_date = version_info.get("VersionDate", "")
+            version_time = version_info.get("VersionTime", "")
 
-        return "Unknown"
-    return "Unknown (compiler not found)"
+            return f"Client {client_ver}, Patch {patch_ver} ({version_date} {version_time})"
+        except Exception as e:
+            return f"Unknown (error: {str(e)[:50]})"
+    return "Unknown (steam.inf not found)"
 
 
 def generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir):
@@ -425,19 +417,19 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
 
                     # Check compilation status
                     if model_name in failed_dict:
-                        status = "Failed"
+                        status = "FAIL"
                         reason = failed_dict[model_name].split("\n")[0][:100]
                     elif model_name in compiled_models:
-                        status = "Success"
+                        status = "OK"
                         reason = "-"
                     else:
                         # Double-check: see if the compiled file exists in output
                         vmdl_c_in_output = output_models_dir / author_folder.name / model_folder.name / f"{model_name}.vmdl_c"
                         if vmdl_c_in_output.exists():
-                            status = "Success"
+                            status = "OK"
                             reason = "-"
                         else:
-                            status = "Skipped"
+                            status = "SKIP"
                             reason = "No compiled output"
 
                     model_entries.append({
