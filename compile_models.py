@@ -165,7 +165,7 @@ def copy_textures_to_characters(content_dir, models_folder):
     return True
 
 
-def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir):
+def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir):
     """Compile all .vmdl files using resourcecompiler.exe.
     Returns: (failures, success_count, failed_count, skipped_count, build_times)
     build_times is a dict: {model_name: {'time': build_time_str, 'duration': duration_seconds}}
@@ -242,6 +242,13 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
                 if line.strip().startswith("ERROR:") and not re.search(r"ERROR:\s*\d+\s*compiled", line.strip())
             ]
 
+        # Check for actual fatal errors (not summary lines)
+        fatal_errors = [
+            line.strip() for line in output.split("\n")
+            if ("FATAL ERROR" in line or "ERROR:" in line)
+            and not re.search(r"ERROR:\s*\d+\s*compiled", line.strip())
+        ]
+
         # Check if compiled file was created (primary success indicator)
         if compiled_path.exists():
             print(f"    SUCCESS")
@@ -270,6 +277,33 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
                     print(f"    Cleaned output: {output_model_dir}")
             except Exception as e:
                 print(f"    WARNING: Could not clean failed files: {e}")
+
+            # Read detailed error from log if available
+            try:
+                # Try to find resourcecompiler log
+                log_dir = Path(cs2_dir) / "game" / "bin" / "win64" / "logs"
+                if log_dir.exists():
+                    recent_logs = sorted(log_dir.glob("*.log"), key=lambda x: x.stat().st_mtime, reverse=True)
+                    if recent_logs:
+                        log_content = recent_logs[0].read_text(encoding="utf-8", errors="ignore")
+                        # Extract relevant error section
+                        lines = log_content.split("\n")
+                        error_section = []
+                        capture = False
+                        for line in lines:
+                            if "ERROR" in line or "FATAL" in line:
+                                capture = True
+                            if capture and len(error_section) < 10:
+                                error_section.append(line.strip())
+                            if len(error_section) >= 10:
+                                break
+                        if error_section:
+                            enhanced_error = "\n".join(error_section)
+                            # Update failure reason
+                            failures[model_path] = enhanced_error
+                            error_reason = enhanced_error
+            except Exception as e:
+                print(f"    WARNING: Could not enhance error message: {e}")
         else:
             # Check game directory for compiled files (may exist from previous runs)
             if game_model_dir.exists() and any(game_model_dir.rglob("*_c")):
@@ -474,14 +508,24 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                     })
 
         # Also add failed models that might not be in model_entries yet
-        for model_name, error in failed_dict.items():
+        for model_path, error in failures.items():
             # Check if already added
-            if not any(me['file'].startswith(model_name) for me in model_entries):
-                # This model failed but wasn't processed (maybe no .vmdl file?)
+            if not any((me['file'].endswith('.vmdl') and model_path.endswith(me['file'].replace('.vmdl', ''))) for me in model_entries):
+                # Extract directory and file from model_path
+                # model_path like "agents/models/upkk/origami_v2/origami_v2.vmdl"
+                parts = model_path.replace("\\", "/").split("/")
+                if len(parts) >= 4:
+                    directory = "/".join(parts[:4])  # agents/models/upkk/origami_v2
+                    file = parts[-1]
+                else:
+                    directory = "unknown"
+                    file = parts[-1] if parts else "unknown"
+
+                model_name = file.replace(".vmdl", "")
                 build_time_info = build_times.get(model_name, {'time': '-', 'duration': '-'})
                 model_entries.append({
-                    "directory": "unknown",
-                    "file": f"{model_name}.vmdl",
+                    "directory": directory,
+                    "file": file,
                     "status": "FAIL",
                     "build_time": build_time_info['time'],
                     "duration": f"{build_time_info['duration']}s" if isinstance(build_time_info['duration'], (int, float)) else '-',
@@ -507,7 +551,8 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     lines.append("")
     lines.append("| Directory | File | Status | Build Time | Duration | Failure Reason |")
     lines.append("|-----------|------|--------|-----------|----------|----------------|")
-
+    lines.append("")
+    
     for entry in sorted(model_entries, key=lambda x: (x["directory"], x["file"])):
         lines.append(f"| {entry['directory']} | {entry['file']} | {entry['status']} | {entry.get('build_time', '-')} | {entry.get('duration', '-')} | {entry['reason']} |")
 
@@ -575,7 +620,7 @@ def main():
         sys.exit(1)
 
     # Step 4: Compile
-    failures, success_count, failed_count, skipped_count, build_times = compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir)
+    failures, success_count, failed_count, skipped_count, build_times = compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir)
 
     # Step 5: Collect
     if not collect_compiled(content_dir, game_dir_cs2, output_dir, source_dir, models_folder, failures):
