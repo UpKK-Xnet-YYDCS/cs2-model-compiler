@@ -28,7 +28,7 @@ from pathlib import Path
 # Change these or override via command-line arguments
 # ============================================================
 DEFAULT_CS2_DIR = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive"
-DEFAULT_SOURCE_DIR = r"C:\Users\e54385991\Desktop\CS2-ModelBuilder"
+DEFAULT_SOURCE_DIR = r"C:\Users\e54385991\Desktop\CS2-ModelBuilder\3232287131"
 DEFAULT_OUTPUT_DIR = os.path.join(os.getcwd(), "compiled")
 # ============================================================
 
