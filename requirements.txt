@@ -1,3 +1,7 @@
 # CS2 Model Compiler Requirements
 # pywin32 is optional - used for getting file version on Windows
 pywin32; platform_system == "Windows"
+
+# For model stats (get_model_stats.py)
+trimesh
+tqdm

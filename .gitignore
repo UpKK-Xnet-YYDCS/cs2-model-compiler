@@ -1,0 +1,36 @@
+# Compiled models and outputs
+compiled/
+temp_glb/
+model_stats.csv
+BuildStats.md
+vmdl_stats.csv
+
+# Source2Viewer CLI (exe and related binaries)
+Source2Viewer-cli/*.exe
+Source2Viewer-cli/*.dll
+Source2Viewer.exe
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Agent source files (large)
+agents/
+
+# Config examples
+steam_config.txt.example
+UPLOAD_INSTRUCTIONS.md
+
+# Test files
+Source2Viewer-cli/test.py
+Source2Viewer-cli/exceptions.txt

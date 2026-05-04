@@ -28,7 +28,7 @@ from pathlib import Path
 # Change these or override via command-line arguments
 # ============================================================
 DEFAULT_CS2_DIR = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive"
-DEFAULT_SOURCE_DIR = r"F:\CS2-ModelBuilder"
+DEFAULT_SOURCE_DIR = os.path.join(os.getcwd())
 DEFAULT_OUTPUT_DIR = os.path.join(os.getcwd(), "compiled")
 # ============================================================
 
@@ -417,12 +417,27 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     """Generate BuildStats.md with compilation results.
     build_times: dict {model_name: {'time': str, 'duration': float}}
     """
-    print("\n[6/6] Generating BuildStats.md...")
+    print("\n[7/7] Generating BuildStats.md...")
 
     output_path = Path(output_dir)
     stats_file = output_path / "BuildStats.md"
 
     toolchain_version = get_toolchain_version(cs2_dir)
+
+    # Read model stats CSV if exists
+    model_stats = []
+    model_stats_csv = output_path / "model_stats.csv"
+    if model_stats_csv.exists():
+        try:
+            import csv
+            with open(model_stats_csv, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if row.get('status') == 'Success':
+                        model_stats.append(row)
+            print(f"  Loaded model stats: {len(model_stats)} models")
+        except Exception as e:
+            print(f"  WARNING: Failed to read model stats CSV: {e}")
 
     # Collect all model directories and files
     models_dir = content_dir / models_folder / "models"
@@ -571,6 +586,26 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
         lines.append("No failures.")
         lines.append("")
 
+    # Add model stats table if available
+    if model_stats:
+        lines.append("")
+        lines.append("## Model Statistics (Vertex/Triangle Count)")
+        lines.append("")
+        lines.append("| Model | Meshes | Triangles | Vertices | Folder Size (MB) | Files |")
+        lines.append("|-------|--------|-----------|----------|------------------|-------|")
+
+        for stat in sorted(model_stats, key=lambda x: x.get('filename', '')):
+            filename = stat.get('filename', '-')
+            meshes = stat.get('meshes', 0)
+            triangles = stat.get('triangles', 0)
+            vertices = stat.get('vertices', 0)
+            folder_size = stat.get('folder_size_mb', 0)
+            file_count = stat.get('file_count', 0)
+
+            lines.append(f"| {filename} | {meshes} | {triangles:,} | {vertices:,} | {folder_size} | {file_count} |")
+
+        lines.append("")
+
     stats_file.write_text("\n".join(lines), encoding="utf-8")
     print(f"  Generated: {stats_file}")
     return True
@@ -626,7 +661,20 @@ def main():
     if not collect_compiled(content_dir, game_dir_cs2, output_dir, source_dir, models_folder, failures):
         print("\n[WARNING] No compiled files collected. Check errors above.")
 
-    # Step 6: Generate BuildStats.md
+    # Step 6: Generate model stats (vertex/triangle count)
+    print("\n[6/7] Generating model stats...")
+    try:
+        subprocess.run(
+            ["uv", "run", "python", "get_model_stats.py", "--model-dir", str(output_dir / models_folder / "models"),
+             "--cli-path", str(Path(__file__).parent / "Source2Viewer-cli" / "Source2Viewer-CLI.exe")],
+            cwd=Path(__file__).parent,
+            check=True,
+            timeout=300,
+        )
+    except Exception as e:
+        print(f"  WARNING: Failed to generate model stats: {e}")
+
+    # Step 7: Generate BuildStats.md
     generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir, build_times)
 
     print("\n" + "=" * 60)
