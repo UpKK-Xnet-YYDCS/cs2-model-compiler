@@ -56,11 +56,6 @@ def parse_args():
         default="agents",
         help="Subfolder name under source-dir containing models (default: agents)",
     )
-    parser.add_argument(
-        "--workshop-dir",
-        default=r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo_addons\upkkmodelpack2026_agents",
-        help="Path to workshop addon directory (default: csgo_addons\\upkkmodelpack2026_agents)",
-    )
     return parser.parse_args()
 
 
@@ -251,33 +246,38 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
         if compiled_path.exists():
             print(f"    SUCCESS")
             success_count += 1
-        elif error_lines:
-            error_reason = "\n".join(error_lines)
+        elif error_lines or fatal_errors:
+            # Combine all error lines
+            all_errors = error_lines + fatal_errors
+            error_reason = "\n".join(all_errors)
             model_path = f"{models_folder}/models/{str(rel_to_models.parent).replace(chr(92), '/')}/{model_name}.vmdl"
             failures[model_path] = error_reason
             failed_count += 1
-            print(f"    FAILED: {error_lines[0][:120]}")
+            print(f"    FAILED: {all_errors[0][:120]}")
+
+            # Delete failed compiled files only (not the source folder)
+            try:
+                # Delete compiled files in game model directory
+                if game_model_dir.exists():
+                    for item in game_model_dir.rglob("*_c"):
+                        item.unlink()
+                        print(f"    Deleted: {item.name}")
+                # Also delete from output directory
+                output_model_dir = Path(output_dir) / models_folder / "models" / rel_to_models.parent
+                if output_model_dir.exists():
+                    for item in output_model_dir.rglob("*_c"):
+                        item.unlink()
+                    print(f"    Cleaned output: {output_model_dir}")
+            except Exception as e:
+                print(f"    WARNING: Could not clean failed files: {e}")
         else:
-            # Check for actual fatal errors (not summary lines)
-            fatal_errors = [
-                line.strip() for line in output.split("\n")
-                if ("FATAL ERROR" in line or "ERROR:" in line)
-                and not re.search(r"ERROR:\s*\d+\s*compiled", line.strip())
-            ]
-            if fatal_errors:
-                error_reason = "\n".join(fatal_errors)
-                model_path = f"{models_folder}/models/{str(rel_to_models.parent).replace(chr(92), '/')}/{model_name}.vmdl"
-                failures[model_path] = error_reason
-                failed_count += 1
-                print(f"    FAILED: {fatal_errors[0][:120]}")
+            # Check game directory for compiled files (may exist from previous runs)
+            if game_model_dir.exists() and any(game_model_dir.rglob("*_c")):
+                print(f"    SUCCESS (from cache)")
+                success_count += 1
             else:
-                # Check game directory for compiled files (may exist from previous runs)
-                if game_model_dir.exists() and any(game_model_dir.rglob("*_c")):
-                    print(f"    SUCCESS (from cache)")
-                    success_count += 1
-                else:
-                    skipped_count += 1
-                    print(f"    SKIPPED")
+                skipped_count += 1
+                print(f"    SKIPPED")
 
     print(f"\n  Summary: {success_count} compiled, {failed_count} failed, {skipped_count} skipped")
     return failures, success_count, failed_count, skipped_count, build_times
@@ -473,6 +473,21 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                         "reason": reason
                     })
 
+        # Also add failed models that might not be in model_entries yet
+        for model_name, error in failed_dict.items():
+            # Check if already added
+            if not any(me['file'].startswith(model_name) for me in model_entries):
+                # This model failed but wasn't processed (maybe no .vmdl file?)
+                build_time_info = build_times.get(model_name, {'time': '-', 'duration': '-'})
+                model_entries.append({
+                    "directory": "unknown",
+                    "file": f"{model_name}.vmdl",
+                    "status": "FAIL",
+                    "build_time": build_time_info['time'],
+                    "duration": f"{build_time_info['duration']}s" if isinstance(build_time_info['duration'], (int, float)) else '-',
+                    "reason": error[:100]
+                })
+
     # Generate markdown
     lines = []
     lines.append("# Build Stats")
@@ -568,32 +583,6 @@ def main():
 
     # Step 6: Generate BuildStats.md
     generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir, build_times)
-
-    # Step 7: Copy to workshop directory
-    print("\n[7/7] Copying compiled files to workshop directory...")
-    workshop_dir = Path(args.workshop_dir)
-    if workshop_dir.exists():
-        try:
-            # Copy compiled files to workshop addon directory
-            dest_dir = workshop_dir / models_folder / "models"
-            dest_dir.mkdir(parents=True, exist_ok=True)
-
-            # Copy from output to workshop
-            src_dir = Path(output_dir) / models_folder / "models"
-            if src_dir.exists():
-                for item in src_dir.iterdir():
-                    if item.is_dir():
-                        dest = dest_dir / item.name
-                        if dest.exists():
-                            shutil.rmtree(dest)
-                        shutil.copytree(item, dest)
-                        print(f"  Copied: {item.name}")
-
-            print(f"  Successfully copied to: {workshop_dir}")
-        except Exception as e:
-            print(f"  WARNING: Failed to copy to workshop directory: {e}")
-    else:
-        print(f"  WARNING: Workshop directory not found: {workshop_dir}")
 
     print("\n" + "=" * 60)
     print("  Done!")
