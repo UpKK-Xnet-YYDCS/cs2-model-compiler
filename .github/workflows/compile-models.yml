@@ -25,3 +25,19 @@ jobs:
       - name: Run compile_models.py
         working-directory: F:\CS2-ModelBuilder
         run: uv run python compile_models.py
+
+      - name: Upload BuildStats.md
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-stats
+          path: F:\CS2-ModelBuilder\compiled\BuildStats.md
+          if-no-files-found: warn
+
+      - name: Upload compiled models
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compiled-models
+          path: F:\CS2-ModelBuilder\compiled
+          if-no-files-found: warn
