@@ -1,4 +1,4 @@
-# /// script
+﻿# /// script
 # requires-python = ">=3.10"
 # dependencies = []
 # ///
@@ -167,14 +167,15 @@ def copy_textures_to_characters(content_dir, models_folder):
 
 def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir):
     """Compile all .vmdl files using resourcecompiler.exe.
-    Returns: (failures, success_count, failed_count, skipped_count)
+    Returns: (failures, success_count, failed_count, skipped_count, build_times)
+    build_times is a dict: {model_name: {'time': build_time_str, 'duration': duration_seconds}}
     """
     print("\n[4/5] Compiling models...")
 
     vmdl_files = list(content_dir.glob(f"{models_folder}/**/*.vmdl"))
     if not vmdl_files:
         print("  No .vmdl files found!")
-        return {}, 0, 0, 0
+        return {}, 0, 0, 0, {}
 
     print(f"  Found {len(vmdl_files)} models to compile\n")
 
@@ -182,6 +183,7 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
     success_count = 0
     failed_count = 0
     skipped_count = 0
+    build_times = {}  # {model_name: {'time': build_time_str, 'duration': duration_seconds}}
 
     game_models_dir = get_game_dir(cs2_dir) / models_folder / "models"
 
@@ -200,6 +202,9 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
 
         print(f"  [{i}/{len(vmdl_files)}] Compiling: {rel_path}")
 
+        # Start timing
+        start_time = time.time()
+
         result = subprocess.run(
             [
                 str(compiler),
@@ -216,6 +221,14 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
         )
 
         output = result.stdout or ""
+
+        # Calculate duration and record build time
+        end_time = time.time()
+        duration = round(end_time - start_time, 2)
+        build_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+
+        # Store build time and duration for this model
+        build_times[model_name] = {'time': build_time_str, 'duration': duration}
 
         # Wait for file to be flushed
         time.sleep(0.5)
@@ -262,7 +275,7 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
                     print(f"    SKIPPED")
 
     print(f"\n  Summary: {success_count} compiled, {failed_count} failed, {skipped_count} skipped")
-    return failures, success_count, failed_count, skipped_count
+    return failures, success_count, failed_count, skipped_count, build_times
 
 
 def collect_compiled(content_dir, game_dir, output_dir, source_dir, models_folder, failures):
@@ -361,8 +374,10 @@ def get_toolchain_version(cs2_dir):
     return "Unknown (steam.inf not found)"
 
 
-def generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir):
-    """Generate BuildStats.md with compilation results."""
+def generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir, build_times=None):
+    """Generate BuildStats.md with compilation results.
+    build_times: dict {model_name: {'time': str, 'duration': float}}
+    """
     print("\n[6/6] Generating BuildStats.md...")
 
     output_path = Path(output_dir)
@@ -432,10 +447,17 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                             status = "SKIP"
                             reason = "No compiled output"
 
+                    # Get build time info
+                    build_time_info = build_times.get(model_name, {'time': '-', 'duration': '-'})
+                    build_time = build_time_info['time']
+                    duration = build_time_info['duration']
+
                     model_entries.append({
                         "directory": f"{author_folder.name}/{model_folder.name}",
                         "file": vmdl.name,
                         "status": status,
+                        "build_time": build_time,
+                        "duration": f"{duration}s" if isinstance(duration, (int, float)) else '-',
                         "reason": reason
                     })
 
@@ -456,11 +478,11 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     lines.append("")
     lines.append("## Model Compilation Results")
     lines.append("")
-    lines.append("| Directory | File | Status | Failure Reason |")
-    lines.append("|-----------|------|--------|----------------|")
+    lines.append("| Directory | File | Status | Build Time | Duration | Failure Reason |")
+    lines.append("|-----------|------|--------|-----------|----------|----------------|")
 
     for entry in sorted(model_entries, key=lambda x: (x["directory"], x["file"])):
-        lines.append(f"| {entry['directory']} | {entry['file']} | {entry['status']} | {entry['reason']} |")
+        lines.append(f"| {entry['directory']} | {entry['file']} | {entry['status']} | {entry.get('build_time', '-')} | {entry.get('duration', '-')} | {entry['reason']} |")
 
     lines.append("")
     lines.append("## Failed Models Details")
@@ -526,14 +548,14 @@ def main():
         sys.exit(1)
 
     # Step 4: Compile
-    failures, success_count, failed_count, skipped_count = compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir)
+    failures, success_count, failed_count, skipped_count, build_times = compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir)
 
     # Step 5: Collect
     if not collect_compiled(content_dir, game_dir_cs2, output_dir, source_dir, models_folder, failures):
         print("\n[WARNING] No compiled files collected. Check errors above.")
 
     # Step 6: Generate BuildStats.md
-    generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir)
+    generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir, build_times)
 
     print("\n" + "=" * 60)
     print("  Done!")
