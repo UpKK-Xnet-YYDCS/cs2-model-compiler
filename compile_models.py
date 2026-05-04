@@ -597,11 +597,11 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
 
         for stat in sorted(model_stats, key=lambda x: x.get('filename', '')):
             filename = stat.get('filename', '-')
-            meshes = stat.get('meshes', 0)
-            triangles = stat.get('triangles', 0)
-            vertices = stat.get('vertices', 0)
-            folder_size = stat.get('folder_size_mb', 0)
-            file_count = stat.get('file_count', 0)
+            meshes = int(stat.get('meshes', 0) or 0)
+            triangles = int(stat.get('triangles', 0) or 0)
+            vertices = int(stat.get('vertices', 0) or 0)
+            folder_size = float(stat.get('folder_size_mb', 0) or 0)
+            file_count = int(stat.get('file_count', 0) or 0)
 
             lines.append(f"| {filename} | {meshes} | {triangles:,} | {vertices:,} | {folder_size} | {file_count} |")
 
