@@ -12,6 +12,22 @@ jobs:
 
       - name: Setup Python and uv (skip if exists)
         run: |
+          # Add common uv install paths to PATH
+          $uvPaths = @(
+            "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin",
+            "$env:USERPROFILE\.local\bin",
+            "$env:LOCALAPPDATA\Programs\uv",
+            "C:\Users\e54385991\.local\bin"
+          )
+
+          foreach ($path in $uvPaths) {
+            if (Test-Path "$path\uv.exe") {
+              $env:Path = "$path;$env:Path"
+              Write-Output "Found uv at: $path"
+              break
+            }
+          }
+
           # Check if uv exists
           try {
             $uvVersion = uv --version 2>$null
@@ -19,7 +35,12 @@ jobs:
           } catch {
             Write-Output "Installing uv..."
             Invoke-RestMethod https://astral.sh/uv/install.ps1 | Invoke-Expression
+            # Add to PATH for current session
+            $env:Path = "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin;$env:Path"
           }
+
+          # Verify uv is working
+          uv --version
 
           # Check if Python installed
           $pythonVersion = uv python list --installed 2>$null | Select-String "cpython" | Select-Object -First 1
