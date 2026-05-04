@@ -535,6 +535,7 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     lines.append("")
     lines.append("| Directory | File | Status | Build Time | Duration | Failure Reason |")
     lines.append("|-----------|------|--------|-----------|----------|----------------|")
+
     for entry in sorted(model_entries, key=lambda x: (x["directory"], x["file"])):
         lines.append(f"| {entry['directory']} | {entry['file']} | {entry['status']} | {entry.get('build_time', '-')} | {entry.get('duration', '-')} | {entry['reason']} |")
     lines.append("")
