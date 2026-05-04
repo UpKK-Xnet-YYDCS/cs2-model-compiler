@@ -1,0 +1,30 @@
+name: Upload to Workshop
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upload:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup and run upload
+        run: |
+          # Add uv to PATH
+          $uvPath = "C:\WINDOWS\ServiceProfiles\NetworkService\.local\bin"
+          $env:Path = "$uvPath;$env:Path"
+
+          # Verify uv
+          uv --version
+
+          # Install dependencies (if any)
+          Set-Location F:\CS2-ModelBuilder
+          if (Test-Path "requirements.txt") {
+            uv pip install -r requirements.txt
+          }
+
+          # Run upload script
+          uv run upload_to_workshop.py
+        shell: powershell
