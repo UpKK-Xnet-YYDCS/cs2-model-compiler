@@ -30,11 +30,7 @@ jobs:
 
           # Install dependencies
           Set-Location F:\CS2-ModelBuilder
-          if (Test-Path "requirements.txt") {
-            uv pip install -r requirements.txt
-          } else {
-            Write-Output "No requirements.txt found, skipping"
-          }
+          uv pip install -r requirements.txt
 
           # Run compile script
           uv run python compile_models.py
