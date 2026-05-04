@@ -420,10 +420,8 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     """
     print("\n[7/7] Generating BuildStats.md...")
 
-    # BuildStats.md goes to project root (parent of output_dir which is 'compiled')
     output_path = Path(output_dir)
     stats_file = output_path.parent / "BuildStats.md"
-
     toolchain_version = get_toolchain_version(cs2_dir)
 
     # Read model stats Markdown from project root
@@ -432,30 +430,23 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     if model_stats_md.exists():
         try:
             model_stats_content = model_stats_md.read_text(encoding='utf-8')
-            # Count models from markdown table
-            lines = [l for l in model_stats_content.split('\n') if l.strip().startswith('|') and not l.strip().startswith('|-')]
-            model_count = max(0, len(lines) - 2)  # Subtract header and separator
+            table_lines = [l for l in model_stats_content.split('\n') if l.strip().startswith('|') and not l.strip().startswith('|-')]
+            model_count = max(0, len(table_lines) - 2)
             print(f"  Loaded model stats: {model_count} models")
         except Exception as e:
             print(f"  WARNING: Failed to read model stats Markdown: {e}")
 
-    # Collect all model directories and files
+    # Collect model entries
     models_dir = content_dir / models_folder / "models"
     model_entries = []
-
-    # Build a dict of failed models: {model_name: error_reason}
     failed_dict = {}
     for key, value in failures.items():
-        # Extract model name from path like "agents/models/upkk/curren_chan/curren_chan.vmdl"
         parts = key.replace("\\", "/").split("/")
         if len(parts) >= 2:
             model_name = parts[-1].replace(".vmdl", "")
             failed_dict[model_name] = value
 
-    # Build set of successfully compiled models from output directory
-    # Check if .vmdl_c file exists for each model
     compiled_models = set()
-    compiled_model_dirs = set()  # Store (author, model_dir, model_name) tuples
     output_models_dir = output_path / models_folder / "models"
     if output_models_dir.exists():
         for author_dir in output_models_dir.iterdir():
@@ -464,13 +455,9 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
             for model_dir in author_dir.iterdir():
                 if not model_dir.is_dir():
                     continue
-                # Check all .vmdl_c files in this directory
-                vmdl_c_files = list(model_dir.glob("*.vmdl_c"))
-                for vcf in vmdl_c_files:
-                    # vcf is like "curren_chan.vmdl_c" or "curren_chan_nohitbox.vmdl_c"
-                    model_name = vcf.stem.replace(".vmdl", "")  # Remove .vmdl_c -> .vmdl -> name
+                for vcf in model_dir.glob("*.vmdl_c"):
+                    model_name = vcf.stem.replace(".vmdl", "")
                     compiled_models.add(model_name)
-                    compiled_model_dirs.add((author_dir.name, model_dir.name, model_name))
 
     if models_dir.exists():
         for author_folder in models_dir.iterdir():
@@ -479,12 +466,8 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
             for model_folder in author_folder.iterdir():
                 if not model_folder.is_dir():
                     continue
-
-                vmdl_files = list(model_folder.glob("*.vmdl"))
-                for vmdl in vmdl_files:
+                for vmdl in model_folder.glob("*.vmdl"):
                     model_name = vmdl.stem
-
-                    # Check compilation status
                     if model_name in failed_dict:
                         status = "FAIL"
                         reason = failed_dict[model_name].split("\n")[0][:100]
@@ -492,7 +475,6 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                         status = "OK"
                         reason = "-"
                     else:
-                        # Double-check: see if the compiled file exists in output
                         vmdl_c_in_output = output_models_dir / author_folder.name / model_folder.name / f"{model_name}.vmdl_c"
                         if vmdl_c_in_output.exists():
                             status = "OK"
@@ -501,18 +483,11 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                             status = "SKIP"
                             reason = "No compiled output"
 
-                    # Get build time info
                     build_time_info = build_times.get(model_name, {'time': '-', 'duration': '-'})
                     build_time = build_time_info['time']
                     duration = build_time_info['duration']
 
-                    # Path from agents/ onwards
-                    model_path = f"agents/models/{author_folder.name}/{model_folder.name}/{vmdl.stem}"
-                    if vmdl.name.endswith('.vmdl'):
-                        display_file = f"{model_path}.vmdl"
-                    else:
-                        display_file = vmdl.name
-
+                    display_file = f"agents/models/{author_folder.name}/{model_folder.name}/{vmdl.stem}.vmdl"
                     model_entries.append({
                         "directory": f"agents/models/{author_folder.name}/{model_folder.name}",
                         "file": display_file,
@@ -522,20 +497,15 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                         "reason": reason
                     })
 
-        # Also add failed models that might not be in model_entries yet
         for model_path, error in failures.items():
-            # Check if already added
-            if not any((me['file'].endswith('.vmdl') and model_path.endswith(me['file'].replace('.vmdl', ''))) for me in model_entries):
-                # Extract directory and file from model_path
-                # model_path like "agents/models/upkk/origami_v2/origami_v2.vmdl"
+            if not any(me['file'].endswith('.vmdl') and model_path.endswith(me['file'].replace('.vmdl', '')) for me in model_entries):
                 parts = model_path.replace("\\", "/").split("/")
                 if len(parts) >= 4:
-                    directory = "/".join(parts[:4])  # agents/models/upkk/origami_v2
+                    directory = "/".join(parts[:4])
                     file = parts[-1]
                 else:
                     directory = "unknown"
                     file = parts[-1] if parts else "unknown"
-
                 model_name = file.replace(".vmdl", "")
                 build_time_info = build_times.get(model_name, {'time': '-', 'duration': '-'})
                 model_entries.append({
@@ -556,7 +526,6 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     lines.append(f"**CS2 Directory:** {cs2_dir}")
     lines.append("")
     lines.append("## Summary")
-    lines.append("")
     lines.append(f"- **Success:** {success_count}")
     lines.append(f"- **Failed:** {failed_count}")
     lines.append(f"- **Skipped:** {skipped_count}")
@@ -566,15 +535,11 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     lines.append("")
     lines.append("| Directory | File | Status | Build Time | Duration | Failure Reason |")
     lines.append("|-----------|------|--------|-----------|----------|----------------|")
-    lines.append("")
-    
     for entry in sorted(model_entries, key=lambda x: (x["directory"], x["file"])):
         lines.append(f"| {entry['directory']} | {entry['file']} | {entry['status']} | {entry.get('build_time', '-')} | {entry.get('duration', '-')} | {entry['reason']} |")
-
     lines.append("")
     lines.append("## Failed Models Details")
     lines.append("")
-
     if failures:
         for model_path, error in failures.items():
             lines.append(f"### {model_path}")
@@ -586,28 +551,10 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
         lines.append("No failures.")
         lines.append("")
 
-    # Add model stats table if available
+    # Append model stats table at the end
     if model_stats_content:
         lines.append("")
         lines.append(model_stats_content)
-        lines.append("")
-        lines.append(model_stats_content)
-        lines.append("")
-        lines.append("## Model Statistics (Vertex/Triangle Count)")
-        lines.append("")
-        lines.append("| Model | Meshes | Triangles | Vertices | Folder Size (MB) | Files |")
-        lines.append("|-------|--------|-----------|----------|------------------|-------|")
-
-        for stat in sorted(model_stats, key=lambda x: x.get('filename', '')):
-            filename = stat.get('filename', '-')
-            meshes = int(stat.get('meshes', 0) or 0)
-            triangles = int(stat.get('triangles', 0) or 0)
-            vertices = int(stat.get('vertices', 0) or 0)
-            folder_size = float(stat.get('folder_size_mb', 0) or 0)
-            file_count = int(stat.get('file_count', 0) or 0)
-
-            lines.append(f"| {filename} | {meshes} | {triangles:,} | {vertices:,} | {folder_size} | {file_count} |")
-
         lines.append("")
 
     stats_file.write_text("\n".join(lines), encoding="utf-8")
