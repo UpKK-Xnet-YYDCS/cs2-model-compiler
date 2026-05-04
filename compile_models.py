@@ -56,6 +56,11 @@ def parse_args():
         default="agents",
         help="Subfolder name under source-dir containing models (default: agents)",
     )
+    parser.add_argument(
+        "--workshop-dir",
+        default=r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo_addons\upkkmodelpack2026_agents",
+        help="Path to workshop addon directory (default: csgo_addons\\upkkmodelpack2026_agents)",
+    )
     return parser.parse_args()
 
 
@@ -204,6 +209,7 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
 
         # Start timing
         start_time = time.time()
+        build_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
         result = subprocess.run(
             [
@@ -222,10 +228,9 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
 
         output = result.stdout or ""
 
-        # Calculate duration and record build time
+        # Calculate duration
         end_time = time.time()
         duration = round(end_time - start_time, 2)
-        build_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
 
         # Store build time and duration for this model
         build_times[model_name] = {'time': build_time_str, 'duration': duration}
@@ -452,9 +457,16 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
                     build_time = build_time_info['time']
                     duration = build_time_info['duration']
 
+                    # Path from agents/ onwards
+                    model_path = f"agents/models/{author_folder.name}/{model_folder.name}/{vmdl.stem}"
+                    if vmdl.name.endswith('.vmdl'):
+                        display_file = f"{model_path}.vmdl"
+                    else:
+                        display_file = vmdl.name
+
                     model_entries.append({
-                        "directory": f"{author_folder.name}/{model_folder.name}",
-                        "file": vmdl.name,
+                        "directory": f"agents/models/{author_folder.name}/{model_folder.name}",
+                        "file": display_file,
                         "status": status,
                         "build_time": build_time,
                         "duration": f"{duration}s" if isinstance(duration, (int, float)) else '-',
@@ -556,6 +568,32 @@ def main():
 
     # Step 6: Generate BuildStats.md
     generate_build_stats(content_dir, output_dir, models_folder, failures, success_count, failed_count, skipped_count, cs2_dir, build_times)
+
+    # Step 7: Copy to workshop directory
+    print("\n[7/7] Copying compiled files to workshop directory...")
+    workshop_dir = Path(args.workshop_dir)
+    if workshop_dir.exists():
+        try:
+            # Copy compiled files to workshop addon directory
+            dest_dir = workshop_dir / models_folder / "models"
+            dest_dir.mkdir(parents=True, exist_ok=True)
+
+            # Copy from output to workshop
+            src_dir = Path(output_dir) / models_folder / "models"
+            if src_dir.exists():
+                for item in src_dir.iterdir():
+                    if item.is_dir():
+                        dest = dest_dir / item.name
+                        if dest.exists():
+                            shutil.rmtree(dest)
+                        shutil.copytree(item, dest)
+                        print(f"  Copied: {item.name}")
+
+            print(f"  Successfully copied to: {workshop_dir}")
+        except Exception as e:
+            print(f"  WARNING: Failed to copy to workshop directory: {e}")
+    else:
+        print(f"  WARNING: Workshop directory not found: {workshop_dir}")
 
     print("\n" + "=" * 60)
     print("  Done!")
