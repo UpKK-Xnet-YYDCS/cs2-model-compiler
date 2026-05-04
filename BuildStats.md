@@ -1,6 +1,6 @@
 # Build Stats
 
-**Generated:** 2026-05-04 08:31:48
+**Generated:** 2026-05-04 08:49:33
 **Toolchain Version:** Client 2000809, Patch 1.41.5.8 (Apr 30 2026 15:09:15)
 **CS2 Directory:** F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive
 
@@ -14,20 +14,20 @@
 
 | Directory | File | Status | Build Time | Duration | Failure Reason |
 |-----------|------|--------|-----------|----------|----------------|
-| agents/models/upkk/curren_chan | agents/models/upkk/curren_chan/curren_chan.vmdl | OK | 2026-05-04 08:24:08 | 37.36s | - |
-| agents/models/upkk/curren_chan | agents/models/upkk/curren_chan/curren_chan_nohitbox.vmdl | OK | 2026-05-04 08:24:46 | 33.2s | - |
-| agents/models/upkk/gran_alegria | agents/models/upkk/gran_alegria/gran_alegria.vmdl | OK | 2026-05-04 08:25:20 | 43.18s | - |
-| agents/models/upkk/gran_alegria | agents/models/upkk/gran_alegria/gran_alegria_nohitbox.vmdl | OK | 2026-05-04 08:26:03 | 40.42s | - |
-| agents/models/upkk/origami_v2 | agents/models/upkk/origami_v2/origami_v2.vmdl | FAIL | 2026-05-04 08:26:45 | 9.91s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
-| agents/models/upkk/origami_v2 | agents/models/upkk/origami_v2/origami_v2_nohitbox.vmdl | FAIL | 2026-05-04 08:26:55 | 9.48s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
-| agents/models/upkk/origami_v2 | origami_v2.vmdl | FAIL | 2026-05-04 08:26:45 | 9.91s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
-| agents/models/upkk/origami_v2 | origami_v2_nohitbox.vmdl | FAIL | 2026-05-04 08:26:55 | 9.48s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
-| agents/models/upkk/stay_gold | agents/models/upkk/stay_gold/stay_gold.vmdl | OK | 2026-05-04 08:27:05 | 45.67s | - |
-| agents/models/upkk/stay_gold | agents/models/upkk/stay_gold/stay_gold_nohitbox.vmdl | OK | 2026-05-04 08:27:52 | 42.6s | - |
-| agents/models/upkk/victoire_pisa | agents/models/upkk/victoire_pisa/victoire_pisa.vmdl | OK | 2026-05-04 08:28:35 | 47.11s | - |
-| agents/models/upkk/victoire_pisa | agents/models/upkk/victoire_pisa/victoire_pisa_nohitbox.vmdl | OK | 2026-05-04 08:29:23 | 45.38s | - |
-| agents/models/upkk/vivlos | agents/models/upkk/vivlos/vivlos.vmdl | OK | 2026-05-04 08:30:09 | 48.8s | - |
-| agents/models/upkk/vivlos | agents/models/upkk/vivlos/vivlos_nohitbox.vmdl | OK | 2026-05-04 08:30:58 | 45.68s | - |
+| agents/models/upkk/curren_chan | agents/models/upkk/curren_chan/curren_chan.vmdl | OK | 2026-05-04 08:41:39 | 36.62s | - |
+| agents/models/upkk/curren_chan | agents/models/upkk/curren_chan/curren_chan_nohitbox.vmdl | OK | 2026-05-04 08:42:17 | 36.64s | - |
+| agents/models/upkk/gran_alegria | agents/models/upkk/gran_alegria/gran_alegria.vmdl | OK | 2026-05-04 08:42:54 | 42.74s | - |
+| agents/models/upkk/gran_alegria | agents/models/upkk/gran_alegria/gran_alegria_nohitbox.vmdl | OK | 2026-05-04 08:43:37 | 43.18s | - |
+| agents/models/upkk/origami_v2 | agents/models/upkk/origami_v2/origami_v2.vmdl | FAIL | 2026-05-04 08:44:21 | 10.1s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
+| agents/models/upkk/origami_v2 | agents/models/upkk/origami_v2/origami_v2_nohitbox.vmdl | FAIL | 2026-05-04 08:44:32 | 9.77s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
+| agents/models/upkk/origami_v2 | origami_v2.vmdl | FAIL | 2026-05-04 08:44:21 | 10.1s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
+| agents/models/upkk/origami_v2 | origami_v2_nohitbox.vmdl | FAIL | 2026-05-04 08:44:32 | 9.77s | RESOURCE COMPILE ERROR: Treating Warnings as Errors. (see Gameinfo.gi, path substring: agents/models |
+| agents/models/upkk/stay_gold | agents/models/upkk/stay_gold/stay_gold.vmdl | OK | 2026-05-04 08:44:43 | 45.6s | - |
+| agents/models/upkk/stay_gold | agents/models/upkk/stay_gold/stay_gold_nohitbox.vmdl | OK | 2026-05-04 08:45:29 | 46.41s | - |
+| agents/models/upkk/victoire_pisa | agents/models/upkk/victoire_pisa/victoire_pisa.vmdl | OK | 2026-05-04 08:46:16 | 48.12s | - |
+| agents/models/upkk/victoire_pisa | agents/models/upkk/victoire_pisa/victoire_pisa_nohitbox.vmdl | OK | 2026-05-04 08:47:05 | 47.92s | - |
+| agents/models/upkk/vivlos | agents/models/upkk/vivlos/vivlos.vmdl | OK | 2026-05-04 08:47:54 | 48.3s | - |
+| agents/models/upkk/vivlos | agents/models/upkk/vivlos/vivlos_nohitbox.vmdl | OK | 2026-05-04 08:48:43 | 47.87s | - |
 
 ## Failed Models Details
 
