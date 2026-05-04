@@ -9,8 +9,8 @@ Copies compiled models from output directory to workshop addon folder.
 
 Usage:
     uv run upload_to_workshop.py
-    uv run upload_to_workshop.py --workshop-dir "F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo_addons\upkkmodelpack2026_agents"
-    uv run upload_to_workshop.py --compiled-dir "F:\CS2-ModelBuilder\compiled"
+    uv run upload_to_workshop.py --workshop-dir "F:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo_addons/upkkmodelpack2026_agents"
+    uv run upload_to_workshop.py --compiled-dir "F:/CS2-ModelBuilder/compiled"
 """
 
 import argparse
@@ -22,8 +22,8 @@ from time import sleep
 # ============================================================
 # DEFAULT CONFIGURATION
 # ============================================================
-DEFAULT_COMPILED_DIR = r"F:\CS2-ModelBuilder\compiled"
-DEFAULT_WORKSHOP_DIR = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive\game\csgo_addons\upkkmodelpack2026_agents"
+DEFAULT_COMPILED_DIR = "F:/CS2-ModelBuilder/compiled"
+DEFAULT_WORKSHOP_DIR = "F:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo_addons/upkkmodelpack2026_agents"
 DEFAULT_MODELS_FOLDER = "agents"
 
 

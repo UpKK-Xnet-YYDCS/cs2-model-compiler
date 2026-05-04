@@ -26,5 +26,5 @@ jobs:
           }
 
           # Run upload script
-          uv run upload_to_workshop.py
+          uv run upload_to_workshop.py --compiled-dir "F:/CS2-ModelBuilder/compiled" --workshop-dir "F:/SteamLibrary/steamapps/common/Counter-Strike Global Offensive/game/csgo_addons/upkkmodelpack2026_agents"
         shell: powershell
