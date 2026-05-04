@@ -36,8 +36,8 @@ jobs:
             Write-Output "No requirements.txt found, skipping"
           }
 
-          # Run compile script with correct source directory
-          uv run python compile_models.py --source-dir "C:\Users\e54385991\Desktop\CS2-ModelBuilder\3232287131"
+          # Run compile script
+          uv run python compile_models.py
 
           # Copy BuildStats.md to repository root
           Copy-Item "F:\CS2-ModelBuilder\compiled\BuildStats.md" -Destination "$env:GITHUB_WORKSPACE\BuildStats.md" -Force
