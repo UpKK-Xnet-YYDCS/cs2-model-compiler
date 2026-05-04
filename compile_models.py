@@ -211,6 +211,9 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
             [
                 str(compiler),
                 "-game", str(game_info_path),
+                "-f",            # Force recompile (ignore timestamp cache)
+                "-nop4",         # Skip Perforce operations
+                "-r",            # Recursive (compile dependencies)
                 str(rel_path),
             ],
             cwd=content_dir,
@@ -563,6 +566,49 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     return True
 
 
+def clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder):
+    """Clean previous build artifacts before compiling."""
+    print("\n[0/7] Cleaning previous build artifacts...")
+
+    # 1. Clean output directory (compiled/)
+    output_path = Path(output_dir)
+    if output_path.exists():
+        try:
+            shutil.rmtree(output_path)
+            print(f"  Deleted: {output_path}")
+        except Exception as e:
+            print(f"  WARNING: Failed to delete {output_path}: {e}")
+
+    # 2. Clean content directory (source copy)
+    content_models = Path(content_dir) / models_folder
+    if content_models.exists():
+        try:
+            shutil.rmtree(content_models)
+            print(f"  Deleted: {content_models}")
+        except Exception as e:
+            print(f"  WARNING: Failed to delete {content_models}: {e}")
+
+    # 3. Clean game directory (compiled outputs in CS2 game dir)
+    game_models = Path(game_dir_cs2) / models_folder
+    if game_models.exists():
+        try:
+            shutil.rmtree(game_models)
+            print(f"  Deleted: {game_models}")
+        except Exception as e:
+            print(f"  WARNING: Failed to delete {game_models}: {e}")
+
+    # 4. Clean temp_glb if exists
+    temp_glb = Path(__file__).parent / "temp_glb"
+    if temp_glb.exists():
+        try:
+            shutil.rmtree(temp_glb)
+            print(f"  Deleted: {temp_glb}")
+        except Exception as e:
+            print(f"  WARNING: Failed to delete {temp_glb}: {e}")
+
+    print("  Clean complete.")
+
+
 def main():
     args = parse_args()
 
@@ -593,6 +639,9 @@ def main():
     content_dir = get_content_dir(cs2_dir)
     game_info_path = get_game_dir(cs2_dir)  # path to gameinfo.gi
     game_dir_cs2 = get_game_dir(cs2_dir)
+
+    # Step 0: Clean before compile
+    clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder)
 
     # Step 1: Copy to content
     if not copy_to_content(source_dir, content_dir, models_folder):
