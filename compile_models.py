@@ -420,25 +420,24 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     """
     print("\n[7/7] Generating BuildStats.md...")
 
+    # BuildStats.md goes to project root (parent of output_dir which is 'compiled')
     output_path = Path(output_dir)
-    stats_file = output_path / "BuildStats.md"
+    stats_file = output_path.parent / "BuildStats.md"
 
     toolchain_version = get_toolchain_version(cs2_dir)
 
-    # Read model stats CSV if exists
-    model_stats = []
-    model_stats_csv = output_path / "model_stats.csv"
-    if model_stats_csv.exists():
+    # Read model stats Markdown from project root
+    model_stats_md = output_path.parent / "model_stats.md"
+    model_stats_content = ""
+    if model_stats_md.exists():
         try:
-            import csv
-            with open(model_stats_csv, 'r', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get('status') == 'Success':
-                        model_stats.append(row)
-            print(f"  Loaded model stats: {len(model_stats)} models")
+            model_stats_content = model_stats_md.read_text(encoding='utf-8')
+            # Count models from markdown table
+            lines = [l for l in model_stats_content.split('\n') if l.strip().startswith('|') and not l.strip().startswith('|-')]
+            model_count = max(0, len(lines) - 2)  # Subtract header and separator
+            print(f"  Loaded model stats: {model_count} models")
         except Exception as e:
-            print(f"  WARNING: Failed to read model stats CSV: {e}")
+            print(f"  WARNING: Failed to read model stats Markdown: {e}")
 
     # Collect all model directories and files
     models_dir = content_dir / models_folder / "models"
@@ -588,7 +587,11 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
         lines.append("")
 
     # Add model stats table if available
-    if model_stats:
+    if model_stats_content:
+        lines.append("")
+        lines.append(model_stats_content)
+        lines.append("")
+        lines.append(model_stats_content)
         lines.append("")
         lines.append("## Model Statistics (Vertex/Triangle Count)")
         lines.append("")

@@ -1,8 +1,8 @@
 # Compiled models and outputs
 compiled/
 temp_glb/
-model_stats.csv
-BuildStats.md
+compiled/model_stats.md
+compiled/BuildStats.md
 vmdl_stats.csv
 
 # Source2Viewer CLI (exe and related binaries)

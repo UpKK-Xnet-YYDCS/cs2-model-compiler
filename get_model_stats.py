@@ -132,6 +132,29 @@ def get_model_stats(glb_path: Path, model_dir: Path) -> Dict:
         }
 
 
+def generate_markdown_table(results: list) -> str:
+    """Generate Markdown table from results."""
+    lines = []
+    lines.append("## Model Statistics (Vertex/Triangle Count)")
+    lines.append("")
+    lines.append("| Model | Meshes | Triangles | Vertices | Folder Size (MB) | Files |")
+    lines.append("|-------|--------|-----------|----------|------------------|-------|")
+
+    for stat in sorted(results, key=lambda x: x.get('filename', '')):
+        if stat.get('status') != 'Success':
+            continue
+        filename = stat.get('filename', '-')
+        meshes = stat.get('meshes', 0)
+        triangles = stat.get('triangles', 0)
+        vertices = stat.get('vertices', 0)
+        folder_size = stat.get('folder_size_mb', 0)
+        file_count = stat.get('file_count', 0)
+
+        lines.append(f"| {filename} | {meshes} | {triangles:,} | {vertices:,} | {folder_size} | {file_count} |")
+
+    return "\n".join(lines)
+
+
 def main():
     args = parse_args()
     model_dir = Path(args.model_dir)
@@ -154,10 +177,10 @@ def main():
     print(f"  CLI:      {cli_path}")
     print()
 
-    # Find all .vmdl_c files
+    # Find all .vmdl_c files (models, including nohitbox variants)
     vmdl_c_files = sorted(model_dir.rglob("*.vmdl_c"))
-    # Filter only model files (not materials)
-    vmdl_c_files = [f for f in vmdl_c_files if f.stem.replace(".vmdl", "") and "_" not in f.stem]
+    # Filter out non-model files (materials, etc.) - keep files with actual model names
+    vmdl_c_files = [f for f in vmdl_c_files if f.stem.replace(".vmdl_c", "").replace(".vmdl", "") != ""]
 
     if not vmdl_c_files:
         print("[WARNING] No .vmdl_c files found")
@@ -197,17 +220,15 @@ def main():
         else:
             print(f"    ERROR: {stats['status'][:80]}")
 
-    # Save to CSV
-    output_csv = model_dir.parent.parent / "model_stats.csv"
+    # Save to Markdown (project root)
+    output_md = BASE_DIR / "model_stats.md"
     if results:
-        with open(output_csv, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(f, fieldnames=["filename", "meshes", "triangles", "vertices", "folder_size_mb", "file_count", "status"])
-            writer.writeheader()
-            writer.writerows(results)
+        md_table = generate_markdown_table(results)
+        output_md.write_text(md_table, encoding='utf-8')
 
         print()
         print("=" * 60)
-        print(f"  Saved to: {output_csv}")
+        print(f"  Saved to: {output_md}")
     else:
         print()
         print("[WARNING] No results to save")
