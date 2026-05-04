@@ -26,7 +26,17 @@ jobs:
         working-directory: F:\CS2-ModelBuilder
         run: uv run python compile_models.py
 
-      - name: Upload BuildStats.md
+      - name: Copy BuildStats.md to repository
+        run: |
+          Copy-Item "F:\CS2-ModelBuilder\compiled\BuildStats.md" -Destination "BuildStats.md" -Force
+
+      - name: Commit and push BuildStats.md
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update BuildStats.md from latest compilation"
+          file_pattern: "BuildStats.md"
+
+      - name: Upload BuildStats.md as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
