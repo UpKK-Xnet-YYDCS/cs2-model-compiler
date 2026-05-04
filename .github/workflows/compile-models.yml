@@ -38,34 +38,27 @@ jobs:
 
           # Run compile script
           uv run python compile_models.py
-        shell: powershell
 
-      - name: Install dependencies
-        working-directory: F:\CS2-ModelBuilder
-        run: uv pip install -r requirements.txt
-        shell: powershell
-
-      - name: Run compile_models.py
-        working-directory: F:\CS2-ModelBuilder
-        run: uv run python compile_models.py
-        shell: powershell
-
-      - name: Copy BuildStats.md to repository
-        run: Copy-Item "F:\CS2-ModelBuilder\compiled\BuildStats.md" -Destination "BuildStats.md" -Force
+          # Copy BuildStats.md to repository root
+          Copy-Item "F:\CS2-ModelBuilder\compiled\BuildStats.md" -Destination "$env:GITHUB_WORKSPACE\BuildStats.md" -Force
         shell: powershell
 
       - name: Commit and push BuildStats.md
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Update BuildStats.md from latest compilation"
-          file_pattern: "BuildStats.md"
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add BuildStats.md
+          git diff --staged --quiet || (git commit -m "Update BuildStats.md from latest compilation" && git push)
+        shell: powershell
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload BuildStats.md as artifact
+      - name: Upload compiled models as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-stats
-          path: F:\CS2-ModelBuilder\compiled\BuildStats.md
+          name: compiled-models
+          path: F:\CS2-ModelBuilder\compiled
           if-no-files-found: warn
 
       - name: Upload compiled models
