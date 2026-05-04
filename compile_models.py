@@ -27,9 +27,10 @@ from pathlib import Path
 # DEFAULT CONFIGURATION
 # Change these or override via command-line arguments
 # ============================================================
+BASE_DIR = Path(__file__).parent
 DEFAULT_CS2_DIR = r"F:\SteamLibrary\steamapps\common\Counter-Strike Global Offensive"
-DEFAULT_SOURCE_DIR = os.path.join(os.getcwd())
-DEFAULT_OUTPUT_DIR = os.path.join(os.getcwd(), "compiled")
+DEFAULT_SOURCE_DIR = str(BASE_DIR)
+DEFAULT_OUTPUT_DIR = str(BASE_DIR / "compiled")
 # ============================================================
 
 
@@ -664,10 +665,13 @@ def main():
     # Step 6: Generate model stats (vertex/triangle count)
     print("\n[6/7] Generating model stats...")
     try:
+        # Use BASE_DIR to ensure correct relative paths
+        base_dir = Path(__file__).parent
         subprocess.run(
-            ["uv", "run", "python", "get_model_stats.py", "--model-dir", str(output_dir / models_folder / "models"),
-             "--cli-path", str(Path(__file__).parent / "Source2Viewer-cli" / "Source2Viewer-CLI.exe")],
-            cwd=Path(__file__).parent,
+            ["uv", "run", "python", "get_model_stats.py",
+             "--model-dir", str(base_dir / "compiled" / "agents" / "models"),
+             "--cli-path", str(base_dir / "Source2Viewer-cli" / "Source2Viewer-CLI.exe")],
+            cwd=str(base_dir),
             check=True,
             timeout=300,
         )

@@ -24,8 +24,9 @@ from typing import Dict, List
 # ============================================================
 # Configuration
 # ============================================================
-DEFAULT_MODEL_DIR = r"F:\CS2-ModelBuilder\compiled\agents\models"
-CLI_PATH = Path(__file__).parent / "Source2Viewer-cli" / "Source2Viewer-CLI.exe"
+BASE_DIR = Path(__file__).parent
+DEFAULT_MODEL_DIR = BASE_DIR / "compiled" / "agents" / "models"
+CLI_PATH = BASE_DIR / "Source2Viewer-cli" / "Source2Viewer-CLI.exe"
 
 
 def parse_args():
