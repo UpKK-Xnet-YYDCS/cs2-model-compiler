@@ -1,9 +1,4 @@
-﻿# /// script
-# requires-python = ">=3.10"
-# dependencies = []
-# ///
-
-"""
+﻿"""
 Source 2 Model Compiler for CS2
 Compiles .vmdl files using resourcecompiler.exe
 
@@ -689,16 +684,15 @@ def main():
     # Step 6: Generate model stats (vertex/triangle count)
     print("\n[6/7] Generating model stats...")
     try:
-        # Use BASE_DIR to ensure correct relative paths
         base_dir = Path(__file__).parent
-        subprocess.run(
-            ["uv", "run", "python", "get_model_stats.py",
-             "--model-dir", str(base_dir / "compiled" / "agents" / "models"),
-             "--cli-path", str(base_dir / "Source2Viewer-cli" / "Source2Viewer-CLI.exe")],
-            cwd=str(base_dir),
-            check=True,
-            timeout=300,
+        from get_model_stats import run_model_stats
+        run_model_stats(
+            str(base_dir / "compiled" / "agents" / "models"),
+            str(base_dir / "Source2Viewer-cli" / "Source2Viewer-CLI.exe")
         )
+    except ImportError as e:
+        print(f"  WARNING: Could not import get_model_stats: {e}")
+        print("  Make sure trimesh is installed: pip install trimesh tqdm")
     except Exception as e:
         print(f"  WARNING: Failed to generate model stats: {e}")
 

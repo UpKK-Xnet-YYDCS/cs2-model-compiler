@@ -238,5 +238,46 @@ def main():
     print("=" * 60)
 
 
+def run_model_stats(model_dir_str: str, cli_path_str: str) -> bool:
+    """Run model stats programmatically (for import). Returns success status."""
+    import sys
+    model_dir = Path(model_dir_str)
+    cli_path = cli_path_str
+
+    if not model_dir.exists():
+        print(f"[ERROR] Model directory not found: {model_dir}")
+        return False
+
+    if not Path(cli_path).exists():
+        print(f"[ERROR] Source2Viewer-CLI.exe not found at: {cli_path}")
+        return False
+
+    vmdl_c_files = sorted(model_dir.rglob("*.vmdl_c"))
+    vmdl_c_files = [f for f in vmdl_c_files if f.stem.replace(".vmdl_c", "").replace(".vmdl", "") != ""]
+
+    if not vmdl_c_files:
+        print("[WARNING] No .vmdl_c files found")
+        return False
+
+    results = []
+    for vmdl_c in vmdl_c_files:
+        model_name = vmdl_c.stem.replace(".vmdl_c", "").replace(".vmdl", "")
+        success, glb_path, error = export_to_glb(vmdl_c, cli_path)
+
+        if not success:
+            results.append({"filename": model_name, "meshes": 0, "triangles": 0, "vertices": 0, "folder_size_mb": 0, "file_count": 0, "status": error})
+            continue
+
+        stats = get_model_stats(glb_path, vmdl_c.parent)
+        results.append(stats)
+
+    output_md = BASE_DIR / "model_stats.md"
+    if results:
+        md_table = generate_markdown_table(results)
+        output_md.write_text(md_table, encoding='utf-8')
+        print(f"  Saved model stats: {output_md}")
+    return True
+
+
 if __name__ == "__main__":
     main()
