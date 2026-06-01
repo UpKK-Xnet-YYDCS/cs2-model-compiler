@@ -57,6 +57,11 @@ def parse_args():
         default="agents",
         help="Subfolder name under source-dir containing models (default: agents)",
     )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Force full recompile (ignore existing compiled files)",
+    )
     return parser.parse_args()
 
 
@@ -166,10 +171,11 @@ def copy_textures_to_characters(content_dir, models_folder):
     return True
 
 
-def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir):
+def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir, full_recompile=False):
     """Compile all .vmdl files using resourcecompiler.exe.
     Returns: (failures, success_count, failed_count, skipped_count, build_times)
     build_times is a dict: {model_name: {'time': build_time_str, 'duration': duration_seconds}}
+    full_recompile: if True, recompile all; if False, skip already compiled
     """
     print("\n[4/5] Compiling models...")
 
@@ -196,6 +202,16 @@ def compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir
         rel_to_models = rel_path.relative_to(f"{models_folder}/models")
         compiled_path = game_models_dir / rel_to_models.with_suffix(".vmdl_c")
         game_model_dir = game_models_dir / rel_to_models.parent
+
+        # Skip if already compiled (unless full_recompile)
+        if not full_recompile and compiled_path.exists():
+            print(f"  [{i}/{len(vmdl_files)}] Skipping (already compiled): {rel_path}")
+            skipped_count += 1
+            # Record build time from existing file if possible
+            mtime = compiled_path.stat().st_mtime
+            build_time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(mtime))
+            build_times[model_name] = {'time': build_time_str, 'duration': '-'}
+            continue
 
         # Force recompilation by touching the source file
         vmdl.touch()
@@ -566,11 +582,13 @@ def generate_build_stats(content_dir, output_dir, models_folder, failures, succe
     return True
 
 
-def clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder):
-    """Clean previous build artifacts before compiling."""
+def clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder, full_recompile=False):
+    """Clean previous build artifacts before compiling.
+    full_recompile: if True, clean game directory too (full rebuild)
+    """
     print("\n[0/7] Cleaning previous build artifacts...")
 
-    # 1. Clean output directory (compiled/)
+    # 1. Clean output directory (compiled/) - always clean to get fresh results
     output_path = Path(output_dir)
     if output_path.exists():
         try:
@@ -579,7 +597,7 @@ def clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder):
         except Exception as e:
             print(f"  WARNING: Failed to delete {output_path}: {e}")
 
-    # 2. Clean content directory (source copy)
+    # 2. Clean content directory (source copy) - always clean to get fresh copy
     content_models = Path(content_dir) / models_folder
     if content_models.exists():
         try:
@@ -588,14 +606,17 @@ def clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder):
         except Exception as e:
             print(f"  WARNING: Failed to delete {content_models}: {e}")
 
-    # 3. Clean game directory (compiled outputs in CS2 game dir)
-    game_models = Path(game_dir_cs2) / models_folder
-    if game_models.exists():
-        try:
-            shutil.rmtree(game_models)
-            print(f"  Deleted: {game_models}")
-        except Exception as e:
-            print(f"  WARNING: Failed to delete {game_models}: {e}")
+    # 3. Clean game directory ONLY if full_recompile
+    if full_recompile:
+        game_models = Path(game_dir_cs2) / models_folder
+        if game_models.exists():
+            try:
+                shutil.rmtree(game_models)
+                print(f"  Deleted: {game_models}")
+            except Exception as e:
+                print(f"  WARNING: Failed to delete {game_models}: {e}")
+    else:
+        print("  Skipping game directory clean (use --full for full rebuild)")
 
     # 4. Clean temp_glb if exists
     temp_glb = Path(__file__).parent / "temp_glb"
@@ -640,8 +661,8 @@ def main():
     game_info_path = get_game_dir(cs2_dir)  # path to gameinfo.gi
     game_dir_cs2 = get_game_dir(cs2_dir)
 
-    # Step 0: Clean before compile
-    clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder)
+    # Step 0: Clean before compile (full_recompile only if --full)
+    clean_before_compile(output_dir, content_dir, game_dir_cs2, models_folder, full_recompile=args.full)
 
     # Step 1: Copy to content
     if not copy_to_content(source_dir, content_dir, models_folder):
@@ -655,8 +676,11 @@ def main():
     if not copy_textures_to_characters(content_dir, models_folder):
         sys.exit(1)
 
-    # Step 4: Compile
-    failures, success_count, failed_count, skipped_count, build_times = compile_models(compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir)
+    # Step 4: Compile (default: skip already compiled unless --full)
+    failures, success_count, failed_count, skipped_count, build_times = compile_models(
+        compiler, content_dir, game_info_path, models_folder, cs2_dir, output_dir,
+        full_recompile=args.full
+    )
 
     # Step 5: Collect
     if not collect_compiled(content_dir, game_dir_cs2, output_dir, source_dir, models_folder, failures):
